@@ -1,0 +1,4 @@
+enum ClickType {
+  left,
+  right,
+}
