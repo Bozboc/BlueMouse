@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.pcremote" "\0"
-            VALUE "FileDescription", "pc_remote_controller" "\0"
+            VALUE "CompanyName", "Bozboc" "\0"
+            VALUE "FileDescription", "BlueMouse" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "pc_remote_controller" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.pcremote. All rights reserved." "\0"
-            VALUE "OriginalFilename", "pc_remote_controller.exe" "\0"
-            VALUE "ProductName", "pc_remote_controller" "\0"
+            VALUE "InternalName", "blue_mouse" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 Bozboc. All rights reserved." "\0"
+            VALUE "OriginalFilename", "blue_mouse.exe" "\0"
+            VALUE "ProductName", "BlueMouse" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

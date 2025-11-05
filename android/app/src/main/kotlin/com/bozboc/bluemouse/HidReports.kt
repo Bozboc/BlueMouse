@@ -1,4 +1,4 @@
-package com.pcremote.pc_remote_controller
+package com.bozboc.bluemouse
 
 object HidReports {
     const val MOUSE_REPORT_ID: Int = 1

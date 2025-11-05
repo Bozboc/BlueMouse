@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:pc_remote_controller/core/services/models.dart';
+import 'package:blue_mouse/core/services/models.dart';
 
 /// Service to interact with the native Bluetooth HID implementation
 class BluetoothHidService {

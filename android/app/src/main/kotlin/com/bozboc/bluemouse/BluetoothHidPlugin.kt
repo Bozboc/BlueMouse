@@ -1,7 +1,3 @@
-// Deprecated duplicate file retained for reference after package rename.
-// This file is intentionally empty to avoid redeclaration during build.
-package com.pcremote.pc_remote_controller.deprecated
-
 package com.bozboc.bluemouse
 
 import android.Manifest

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:pc_remote_controller/core/services/models.dart';
+import 'package:blue_mouse/core/services/models.dart';
 import '../providers/bluetooth_hid_provider.dart';
 import '../widgets/remote_app_bar.dart';
 import '../widgets/quick_actions_grid.dart';

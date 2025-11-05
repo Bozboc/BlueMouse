@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pc_remote_controller/core/services/models.dart';
+import 'package:blue_mouse/core/services/models.dart';
 import '../../../../core/services/bluetooth_hid_service.dart';
 import '../../../../core/services/preferences_service.dart';
 

@@ -6,8 +6,8 @@ plugins {
 }
 
 android {
-    namespace = "com.pcremote.pc_remote_controller"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.bozboc.bluemouse"
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -21,11 +21,11 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.pcremote.pc_remote_controller"
+        applicationId = "com.bozboc.bluemouse"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 21  // Required for Bluetooth LE
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -37,8 +37,33 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    // Exclude legacy Kotlin sources from the previous package path to avoid redeclarations
+    sourceSets {
+        main {
+            // Exclude for both Java and Kotlin sources
+            java { exclude 'com/pcremote/**' }
+            // kotlin() source set is contributed by Kotlin Android plugin
+            // Safe to reference when the plugin is applied (it is, at the top of this file)
+            kotlin { exclude 'com/pcremote/**' }
+        }
+    }
+    
+    // Force all subproject dependencies to use consistent configurations
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.appcompat:appcompat:1.6.1'
+            force 'com.google.android.material:material:1.9.0'
+        }
+    }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Force newer androidx.appcompat to resolve android:attr/lStar linking errors
+    // from plugins compiled against older SDKs (like flutter_bluetooth_serial @ SDK 30)
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 }

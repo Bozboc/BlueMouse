@@ -1,4 +1,4 @@
-package com.pcremote.pc_remote_controller
+package com.bozboc.bluemouse
 
 object HidKeyCodes {
     // USB HID Keyboard scan codes

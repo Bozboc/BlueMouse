@@ -1,4 +1,4 @@
-package com.pcremote.pc_remote_controller
+package com.bozboc.bluemouse
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
