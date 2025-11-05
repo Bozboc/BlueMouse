@@ -123,7 +123,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
                 // App Title
                 const Text(
-                  'PC Remote Controller',
+                  'BlueMouse',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

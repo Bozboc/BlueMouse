@@ -34,7 +34,7 @@ class PCRemoteControllerApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'PC Remote',
+        title: 'BlueMouse',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           brightness: Brightness.dark,

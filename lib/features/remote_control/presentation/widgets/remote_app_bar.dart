@@ -56,7 +56,7 @@ class RemoteAppBar extends StatelessWidget implements PreferredSizeWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'PC Remote',
+                      'BlueMouse',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,

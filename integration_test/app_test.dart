@@ -12,7 +12,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify the initial state.
-      expect(find.text('PC Remote'), findsOneWidget);
+      expect(find.text('BlueMouse'), findsOneWidget);
     });
   });
 }
