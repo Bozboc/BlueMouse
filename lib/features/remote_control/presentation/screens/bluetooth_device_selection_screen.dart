@@ -223,26 +223,74 @@ class _BluetoothDeviceSelectionScreenState extends State<BluetoothDeviceSelectio
                   itemCount: provider.availableDevices.length,
                   itemBuilder: (context, index) {
                     final device = provider.availableDevices[index];
+                    final isLastConnected = device.address == provider.getLastConnectedDeviceAddress();
+                    
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: isLastConnected ? Colors.blue.shade50 : null,
+                      elevation: isLastConnected ? 4 : 1,
                       child: ListTile(
-                        leading: const Icon(
-                          Icons.devices,
-                          size: 40,
-                          color: Colors.blue,
+                        leading: Stack(
+                          children: [
+                            Icon(
+                              Icons.devices,
+                              size: 40,
+                              color: isLastConnected ? Colors.blue.shade700 : Colors.blue,
+                            ),
+                            if (isLastConnected)
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                        title: Text(
-                          device.name ?? 'Unknown Device',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                device.name ?? 'Unknown Device',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: isLastConnected ? FontWeight.w700 : FontWeight.w600,
+                                  color: isLastConnected ? Colors.blue.shade900 : null,
+                                ),
+                              ),
+                            ),
+                            if (isLastConnected)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade700,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Last Used',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         subtitle: Text(
                           device.address,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey.shade600,
+                            color: isLastConnected ? Colors.blue.shade700 : Colors.grey.shade600,
                           ),
                         ),
                         trailing: provider.isConnecting
@@ -251,7 +299,11 @@ class _BluetoothDeviceSelectionScreenState extends State<BluetoothDeviceSelectio
                                 height: 24,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.arrow_forward_ios, size: 16),
+                            : Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: isLastConnected ? Colors.blue.shade700 : null,
+                              ),
                         onTap: () async {
                           final navigator = Navigator.of(context);
                           await provider.connectToDevice(device);

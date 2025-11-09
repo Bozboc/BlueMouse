@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/usecase/usecase.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../domain/entities/connection_status.dart';
 import '../../domain/entities/remote_command.dart';
 import '../../domain/repositories/remote_control_repository.dart';
@@ -25,6 +26,7 @@ class RemoteControlProvider extends ChangeNotifier {
   final SendHidCommand sendHidCommand;
   final GetBluetoothConnectionStatus getBluetoothConnectionStatus;
   final RemoteControlRepository repository;
+  final PreferencesService preferencesService;
   
   RemoteControlProvider({
     required this.connectToBluetooth,
@@ -35,6 +37,7 @@ class RemoteControlProvider extends ChangeNotifier {
     required this.sendHidCommand,
     required this.getBluetoothConnectionStatus,
     required this.repository,
+    required this.preferencesService,
   }) {
     _listenToConnectionStatus();
   }
@@ -181,11 +184,35 @@ class RemoteControlProvider extends ChangeNotifier {
         notifyListeners();
       },
       (devices) {
-        _availableDevices = devices;
+        _availableDevices = _sortDevicesByLastConnected(devices);
         _isScanning = false;
         notifyListeners();
       },
     );
+  }
+
+  /// Sort devices so last connected device appears first
+  List<BluetoothDevice> _sortDevicesByLastConnected(List<BluetoothDevice> devices) {
+    final lastConnectedAddress = preferencesService.getLastDeviceAddress();
+    
+    if (lastConnectedAddress == null || lastConnectedAddress.isEmpty) {
+      return devices;
+    }
+    
+    // Sort devices: last connected first, then rest
+    final sortedDevices = List<BluetoothDevice>.from(devices);
+    sortedDevices.sort((a, b) {
+      if (a.address == lastConnectedAddress) return -1;
+      if (b.address == lastConnectedAddress) return 1;
+      return 0;
+    });
+    
+    return sortedDevices;
+  }
+
+  /// Get the last connected device address for UI highlighting
+  String? getLastConnectedDeviceAddress() {
+    return preferencesService.getLastDeviceAddress();
   }
   
   /// Connect to a Bluetooth device

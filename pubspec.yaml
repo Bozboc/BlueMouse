@@ -52,6 +52,12 @@ dependencies:
   
   # Equality
   equatable: ^2.0.7
+  
+  # Wake Lock (Keep screen on)
+  wakelock_plus: ^1.2.8
+  
+  # Fix for package_info_plus gradle issue
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

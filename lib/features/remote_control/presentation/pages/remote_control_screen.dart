@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:blue_mouse/core/services/models.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/bluetooth_hid_provider.dart';
 import '../widgets/remote_app_bar.dart';
 import '../widgets/quick_actions_grid.dart';
@@ -28,6 +29,10 @@ class _RemoteControlScreenState extends State<RemoteControlScreen> with WidgetsB
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Enable wake lock to keep screen on
+    _enableWakeLock();
+    
     // Request focus when the screen is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -38,9 +43,60 @@ class _RemoteControlScreenState extends State<RemoteControlScreen> with WidgetsB
 
   @override
   void dispose() {
+    // Disable wake lock when leaving the screen
+    _disableWakeLock();
     WidgetsBinding.instance.removeObserver(this);
     _focusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _enableWakeLock() async {
+    try {
+      await WakelockPlus.enable();
+      debugPrint('🔒 Wake lock enabled - screen will stay on');
+    } catch (e) {
+      debugPrint('❌ Failed to enable wake lock: $e');
+    }
+  }
+
+  Future<void> _disableWakeLock() async {
+    try {
+      await WakelockPlus.disable();
+      debugPrint('🔓 Wake lock disabled');
+    } catch (e) {
+      debugPrint('❌ Failed to disable wake lock: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Handle screen on/off for reconnection
+    if (state == AppLifecycleState.resumed) {
+      // Screen turned back on or app resumed
+      debugPrint('📱 App resumed - checking Bluetooth connection');
+      _reconnectIfNeeded();
+    } else if (state == AppLifecycleState.paused) {
+      // App paused (screen locked manually)
+      debugPrint('📱 App paused - screen locked');
+    }
+  }
+
+  Future<void> _reconnectIfNeeded() async {
+    final provider = context.read<BluetoothHidProvider>();
+    
+    // If not connected, try to reconnect to last device
+    if (!provider.isConnected && !provider.isConnecting) {
+      debugPrint('🔄 Attempting to reconnect...');
+      
+      // Reinitialize and reconnect
+      try {
+        await provider.initialize();
+      } catch (e) {
+        debugPrint('❌ Reconnection failed: $e');
+      }
+    }
   }
 
   @override
