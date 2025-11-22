@@ -57,6 +57,7 @@ android/gradlew
 android/gradlew.bat
 android/local.properties
 android/key.properties
+android/app/.cxx/
 
 # iOS/XCode related
 **/ios/**/*.mode1v3

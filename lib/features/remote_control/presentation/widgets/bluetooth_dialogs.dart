@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import '../providers/bluetooth_hid_provider.dart';
 
 void showBluetoothDialog(BuildContext context) {
@@ -311,91 +312,250 @@ Widget _buildSetupStep({
   );
 }
 
+Future<void> showDeviceSelectionDialog(BuildContext context) async {
+  // Check Bluetooth state first
+  final bluetoothState = await FlutterBluetoothSerial.instance.state;
+  
+  if (bluetoothState == BluetoothState.STATE_OFF) {
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1e293b),
+          title: const Text(
+            'Bluetooth is Off',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Please turn on Bluetooth to connect to your PC.',
+            style: TextStyle(color: Color(0xFFcbd5e1)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                FlutterBluetoothSerial.instance.openSettings();
+              },
+              child: const Text(
+                'Settings',
+                style: TextStyle(color: Color(0xFF94a3b8)),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await FlutterBluetoothSerial.instance.requestEnable();
+                // Wait a bit for it to turn on, then try showing list again
+                // In a real app we might want to listen to state changes
+                if (context.mounted) {
+                   // Optional: could retry automatically or just let user tap again
+                }
+              },
+              child: const Text(
+                'Turn On',
+                style: TextStyle(color: Color(0xFF60a5fa)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return;
+  }
+
+  final provider = Provider.of<BluetoothHidProvider>(context, listen: false);
+  
+  // Show loading if needed, or just get devices
+  // For now, let's just get the devices directly
+  final devices = await provider.getPairedDevices();
+  
+  if (context.mounted) {
+    if (devices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No paired devices found. Please pair in Android Settings.'),
+          backgroundColor: Color(0xFFef4444),
+        ),
+      );
+      return;
+    }
+    _showDeviceList(context, devices);
+  }
+}
+
 void _showDeviceList(BuildContext context, List<Map<String, String>> devices) {
-  final navigator = Navigator.of(context);
-  navigator.pop(); // Close bluetooth dialog
   showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: const Color(0xFF1e293b),
-      title: const Text(
-        'Select PC',
-        style: TextStyle(color: Colors.white),
-      ),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: devices.length,
-          itemBuilder: (context, index) {
-            final device = devices[index];
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () async {
-                  final dialogNavigator = Navigator.of(context);
-                  await Provider.of<BluetoothHidProvider>(context, listen: false)
-                      .connectToHost(device['address']!);
-                  dialogNavigator.pop();
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF334155),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.computer,
-                        color: Color(0xFF60a5fa),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              device['name'] ?? 'Unknown',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+    builder: (context) {
+      String? connectingAddress;
+      
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Consumer<BluetoothHidProvider>(
+            builder: (context, provider, _) {
+              // Sort devices: Last connected first, then alphabetical
+              final sortedDevices = List<Map<String, String>>.from(devices);
+              final lastAddress = provider.lastConnectedDeviceAddress;
+              
+              sortedDevices.sort((a, b) {
+                if (lastAddress != null) {
+                  if (a['address'] == lastAddress) return -1;
+                  if (b['address'] == lastAddress) return 1;
+                }
+                return (a['name'] ?? '').compareTo(b['name'] ?? '');
+              });
+
+              return AlertDialog(
+                backgroundColor: const Color(0xFF1e293b),
+                title: const Text(
+                  'Select PC',
+                  style: TextStyle(color: Colors.white),
+                ),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: sortedDevices.length,
+                    itemBuilder: (context, index) {
+                      final device = sortedDevices[index];
+                      final isConnecting = device['address'] == connectingAddress;
+                      final isAnyConnecting = connectingAddress != null;
+                      final isCurrentDevice = device['address'] == provider.connectedDeviceAddress;
+                      final isConnected = provider.isConnected && isCurrentDevice;
+                      
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: isAnyConnecting ? null : () async {
+                            // If connected to this device, disconnect
+                            if (isConnected) {
+                              await provider.disconnect();
+                              return;
+                            }
+                            
+                            // If connected to another device, don't allow connecting (optional, but safer)
+                            if (provider.isConnected && !isCurrentDevice) {
+                              return; 
+                            }
+
+                            setState(() {
+                              connectingAddress = device['address'];
+                            });
+                            
+                            try {
+                              await provider.connectToHost(device['address']!);
+                              
+                              // Poll for connection success
+                              for (int i = 0; i < 10; i++) {
+                                if (!context.mounted) break;
+                                await Future.delayed(const Duration(milliseconds: 500));
+                                if (provider.isConnected) {
+                                  if (context.mounted) {
+                                    Navigator.of(context).pop();
+                                  }
+                                  return;
+                                }
+                                if (provider.errorMessage.isNotEmpty) break;
+                              }
+                              
+                              if (context.mounted) {
+                                setState(() {
+                                  connectingAddress = null;
+                                });
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                setState(() {
+                                  connectingAddress = null;
+                                });
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isConnected 
+                                  ? const Color(0xFF22c55e).withOpacity(0.1)
+                                  : const Color(0xFF334155),
+                              borderRadius: BorderRadius.circular(8),
+                              border: isConnected 
+                                  ? Border.all(color: const Color(0xFF22c55e))
+                                  : null,
                             ),
-                            Text(
-                              device['address'] ?? '',
-                              style: const TextStyle(
-                                color: Color(0xFF94a3b8),
-                                fontSize: 12,
-                              ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.computer,
+                                  color: isConnected ? const Color(0xFF22c55e) : const Color(0xFF60a5fa),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        device['name'] ?? 'Unknown',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        device['address'] ?? '',
+                                        style: const TextStyle(
+                                          color: Color(0xFF94a3b8),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isConnecting)
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF60a5fa),
+                                    ),
+                                  )
+                                else if (isConnected)
+                                  const Icon(
+                                    Icons.power_settings_new,
+                                    color: Color(0xFFef4444),
+                                    size: 20,
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Color(0xFF60a5fa),
+                                    size: 16,
+                                  ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Color(0xFF60a5fa),
-                        size: 16,
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(color: Color(0xFF94a3b8)),
-          ),
-        ),
-      ],
-    ),
+                actions: [
+                  if (connectingAddress == null)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: Color(0xFF94a3b8)),
+                      ),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    },
   );
 }
