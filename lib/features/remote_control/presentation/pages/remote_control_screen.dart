@@ -37,15 +37,57 @@ class _RemoteControlScreenState extends State<RemoteControlScreen> with WidgetsB
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focusNode.requestFocus();
+        // Add listener for provider changes
+        context.read<BluetoothHidProvider>().addListener(_onProviderStateChanged);
       }
     });
   }
+
+  void _onProviderStateChanged() {
+    if (!mounted) return;
+    final provider = context.read<BluetoothHidProvider>();
+    
+    // Show error message if any
+    if (provider.errorMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage),
+          backgroundColor: const Color(0xFFef4444),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      provider.clearError();
+    }
+    
+    // Show connection success
+    if (provider.isConnected && !_wasConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connected to ${provider.connectedDeviceName ?? "Device"}'),
+          backgroundColor: const Color(0xFF22c55e),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+    _wasConnected = provider.isConnected;
+  }
+  
+  bool _wasConnected = false;
 
   @override
   void dispose() {
     // Disable wake lock when leaving the screen
     _disableWakeLock();
+    _disableWakeLock();
     WidgetsBinding.instance.removeObserver(this);
+    // Remove listener
+    if (mounted) {
+      try {
+        context.read<BluetoothHidProvider>().removeListener(_onProviderStateChanged);
+      } catch (_) {}
+    }
     _focusNode.dispose();
     super.dispose();
   }
@@ -205,7 +247,7 @@ class _RemoteControlScreenState extends State<RemoteControlScreen> with WidgetsB
               RemoteAppBar(
                 isKeyboardVisible: _isKeyboardVisible,
                 onToggleKeyboard: _toggleKeyboard,
-                onShowBluetoothDialog: () => showBluetoothDialog(context),
+                onShowBluetoothDialog: () => showDeviceSelectionDialog(context),
                 onShowSensitivityDialog: () => showSensitivityDialog(context),
               ),
               QuickActionsGrid(

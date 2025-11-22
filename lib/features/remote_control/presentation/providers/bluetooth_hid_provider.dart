@@ -34,6 +34,7 @@ class BluetoothHidProvider extends ChangeNotifier {
   String? get connectedDeviceName => _connectedDeviceName;
   List<Map<String, String>> get pairedDevices => _pairedDevices;
   double get trackpadSensitivity => _trackpadSensitivity;
+  String? get lastConnectedDeviceAddress => _prefsService.getLastDeviceAddress();
   
   void _setupCallbacks() {
     _hidService.onConnectionStateChanged = (state, deviceAddress, deviceName) {
